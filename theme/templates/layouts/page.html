@@ -1,0 +1,13 @@
+{{template "base" .}}
+
+{{define "header"}}
+    <title>{{.SiteParams.name}} | {{.PageParams.title}}</title>
+    {{end}}
+    
+    {{define "content"}}
+    
+        <h1>{{.Title}}</h1>
+    
+        {{ .Body }}
+    
+    {{end}}

@@ -1,0 +1,347 @@
+
+<!DOCTYPE html>
+<html>
+
+    <head>
+
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="/css/main.css">
+
+        <link rel="apple-touch-icon-precomposed" sizes="57x57" href="apple-touch-icon-57x57.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="114x114" href="apple-touch-icon-114x114.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="72x72" href="apple-touch-icon-72x72.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="144x144" href="apple-touch-icon-144x144.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="60x60" href="apple-touch-icon-60x60.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="120x120" href="apple-touch-icon-120x120.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="76x76" href="apple-touch-icon-76x76.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="152x152" href="apple-touch-icon-152x152.png" />
+        <link rel="icon" type="image/png" href="favicon-196x196.png" sizes="196x196" />
+        <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96" />
+        <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" type="image/png" href="favicon-16x16.png" sizes="16x16" />
+        <link rel="icon" type="image/png" href="favicon-128.png" sizes="128x128" />
+        <meta name="application-name" content="&nbsp;"/>
+        <meta name="msapplication-TileColor" content="#FFFFFF" />
+        <meta name="msapplication-TileImage" content="mstile-144x144.png" />
+        <meta name="msapplication-square70x70logo" content="mstile-70x70.png" />
+        <meta name="msapplication-square150x150logo" content="mstile-150x150.png" />
+        <meta name="msapplication-wide310x150logo" content="mstile-310x150.png" />
+        <meta name="msapplication-square310x310logo" content="mstile-310x310.png" />
+
+        
+    <title>Elgr Test | Project C</title>
+    
+    </head>
+
+    <body onload="main()" onresize="resizeCanvas()">
+        
+    
+        <h1></h1>
+    
+        <script type="x-shader/x-vertex" id="groundVertexShader">
+  precision mediump float;
+  attribute vec3 a_position;
+  attribute vec3 a_color;
+  uniform mat4 u_projectionMatrix, u_modelViewMatrix;
+  varying vec3 v_color;
+
+  void main(){
+    vec4 vertPos4 = u_modelViewMatrix * vec4(a_position, 1.0);
+    gl_Position = u_projectionMatrix * vertPos4;
+
+    v_color = a_color;
+  }
+</script>
+<script type="x-shader/x-fragment" id="groundFragmentShader">
+  precision mediump float;
+  varying vec3 v_color;
+  
+  void main() {
+    gl_FragColor = vec4(v_color, 1.0);
+  }
+</script>
+<script type="x-shader/x-vertex" id="shiveringVertexShader">
+  precision mediump float;
+  attribute vec3 a_position;
+  attribute vec3 a_color;
+  uniform mat4 u_projectionMatrix, u_modelViewMatrix;
+  uniform float u_A, u_B, u_C, u_time;
+  varying vec3 v_color;
+
+  void main(){
+    vec3 position = a_position;
+    position.x = position.x * (1.0 + 0.01*u_A*sin(0.01*u_B * position.z + 0.001*u_C * u_time));
+    position.y = position.y * (1.0 + 0.01*u_A*sin(0.01*u_B * position.z + 0.001*u_C * u_time));
+    vec4 vertPos4 = u_modelViewMatrix * vec4(position, 1.0);
+    gl_Position = u_projectionMatrix * vertPos4;
+
+    v_color = a_color;
+  }
+</script>
+<script type="x-shader/x-fragment" id="shiveringFragmentShader">
+  precision mediump float;
+  varying vec3 v_color;
+  
+  void main() {
+    gl_FragColor = vec4(v_color, 1.0);
+  }
+</script>
+<script type="x-shader/x-vertex" id="phongPhongVertexShader">
+  attribute vec3 a_position;
+  attribute vec3 a_normal;
+
+  uniform mat4 u_projectionMatrix, u_modelViewMatrix, u_normalMatrix;
+
+  varying vec3 v_normalInterp;
+  varying vec3 v_vertexPos;
+
+  void main(){
+    vec4 vertPos4 = u_modelViewMatrix * vec4(a_position, 1.0);
+    v_vertexPos = vec3(vertPos4) / vertPos4.w;
+    v_normalInterp = vec3(u_normalMatrix * vec4(a_normal, 0.0));
+    gl_Position = u_projectionMatrix * vertPos4;
+  }
+</script>
+<script type="x-shader/x-fragment" id="phongPhongFragmentShader">
+  precision mediump float;
+  varying vec3 v_normalInterp;  // Surface normal
+  varying vec3 v_vertexPos;       // Vertex position
+  
+  uniform float u_Ka;   // Ambient reflection coefficient
+  uniform float u_Kd;   // Diffuse reflection coefficient
+  uniform float u_Ks;   // Specular reflection coefficient
+  uniform float u_shininessValue; // Shininess
+  // Material color
+  uniform vec3 u_ambientColor;
+  uniform vec3 u_diffuseColor;
+  uniform vec3 u_specularColor;
+  uniform vec3 u_lightPos; // Light position
+
+  void main() {
+    vec3 N = normalize(v_normalInterp);
+    vec3 L = normalize(u_lightPos - v_vertexPos);
+
+    // Lambert's cosine law
+    float lambertian = max(dot(N, L), 0.0);
+    float specular = 0.0;
+    if(lambertian > 0.0) {
+    vec3 R = reflect(-L, N);      // Reflected light vector
+    vec3 V = normalize(-v_vertexPos); // Vector to viewer
+    // Compute the specular term
+    float specAngle = max(dot(R, V), 0.0);
+      specular = pow(specAngle, u_shininessValue);
+    }
+    gl_FragColor = vec4(u_Ka * u_ambientColor +
+    u_Kd * lambertian * u_diffuseColor +
+    u_Ks * specular * u_specularColor, 1.0);
+}
+</script>
+<script type="x-shader/x-vertex" id="blinnPhongPhongVertexShader">
+  attribute vec3 a_position;
+  attribute vec3 a_normal;
+
+  uniform mat4 u_projectionMatrix, u_modelViewMatrix, u_normalMatrix;
+
+  varying vec3 v_normalInterp;
+  varying vec3 v_vertexPos;
+
+  void main(){
+    vec4 vertPos4 = u_modelViewMatrix * vec4(a_position, 1.0);
+    v_vertexPos = vec3(vertPos4) / vertPos4.w;
+    v_normalInterp = vec3(u_normalMatrix * vec4(a_normal, 0.0));
+    gl_Position = u_projectionMatrix * vertPos4;
+  }
+</script>
+<script type="x-shader/x-fragment" id="blinnPhongPhongFragmentShader">
+  precision mediump float;
+  varying vec3 v_normalInterp;  // Surface normal
+  varying vec3 v_vertexPos;       // Vertex position
+  
+  uniform float u_Ka;   // Ambient reflection coefficient
+  uniform float u_Kd;   // Diffuse reflection coefficient
+  uniform float u_Ks;   // Specular reflection coefficient
+  uniform float u_shininessValue; // Shininess
+  // Material color
+  uniform vec3 u_ambientColor;
+  uniform vec3 u_diffuseColor;
+  uniform vec3 u_specularColor;
+  uniform vec3 u_lightPos; // Light position
+
+  void main() {
+    vec3 N = normalize(v_normalInterp);
+    vec3 L = normalize(u_lightPos - v_vertexPos);
+
+    // Lambert's cosine law
+    float lambertian = max(dot(N, L), 0.0);
+    float specular = 0.0;
+    if(lambertian > 0.0) {
+      vec3 V = normalize(-v_vertexPos); // Vector to viewer
+      vec3 H = normalize(V + normalize(-u_lightPos));      // Reflected light vector
+      // Compute the specular term
+      float specAngle = max(dot(H, N), 0.0);
+      specular = pow(specAngle, u_shininessValue);
+    }
+
+    gl_FragColor = vec4(u_Ka * u_ambientColor +
+    u_Kd * lambertian * u_diffuseColor +
+    u_Ks * specular * u_specularColor, 1.0);
+}
+</script>
+<script type="x-shader/x-vertex" id="phongGourandVertexShader">
+  attribute vec3 a_position;
+  attribute vec3 a_normal;
+
+  uniform mat4 u_projectionMatrix, u_modelViewMatrix, u_normalMatrix;
+
+  varying vec3 v_normalInterp;
+  varying vec3 v_vertexPos;
+
+  uniform float u_Ka;   // Ambient reflection coefficient
+  uniform float u_Kd;   // Diffuse reflection coefficient
+  uniform float u_Ks;   // Specular reflection coefficient
+  uniform float u_shininessValue; // Shininess
+  // Material color
+  uniform vec3 u_ambientColor;
+  uniform vec3 u_diffuseColor;
+  uniform vec3 u_specularColor;
+  uniform vec3 u_lightPos; // Light position
+  
+  varying vec4 v_color; //color
+
+  void main(){
+    vec4 vertPos4 = u_modelViewMatrix * vec4(a_position, 1.0);
+    v_vertexPos = vec3(vertPos4) / vertPos4.w;
+    v_normalInterp = vec3(u_normalMatrix * vec4(a_normal, 0.0));
+    gl_Position = u_projectionMatrix * vertPos4;
+
+    vec3 N = normalize(v_normalInterp);
+    vec3 L = normalize(u_lightPos - v_vertexPos);
+    // Lambert's cosine law
+    float lambertian = max(dot(N, L), 0.0);
+    float specular = 0.0;
+    if(lambertian > 0.0) {
+    vec3 R = reflect(-L, N);      // Reflected light vector
+    vec3 V = normalize(-v_vertexPos); // Vector to viewer
+    // Compute the specular term
+    float specAngle = max(dot(R, V), 0.0);
+      specular = pow(specAngle, u_shininessValue);
+    }
+    v_color = vec4(u_Ka * u_ambientColor +
+    u_Kd * lambertian * u_diffuseColor +
+    u_Ks * specular * u_specularColor, 1.0);
+  }
+</script>
+<script type="x-shader/x-fragment" id="phongGourandFragmentShader">
+  precision mediump float;
+  varying vec4 v_color;
+  
+  void main() {
+    gl_FragColor = v_color;
+  }
+</script>
+<script type="x-shader/x-vertex" id="blinnPhongGourandVertexShader">
+  attribute vec3 a_position;
+  attribute vec3 a_normal;
+
+  uniform mat4 u_projectionMatrix, u_modelViewMatrix, u_normalMatrix;
+  
+  uniform vec3 u_eyePosition;
+
+  varying vec3 v_normalInterp;
+  varying vec3 v_vertexPos;
+
+  uniform float u_Ka;   // Ambient reflection coefficient
+  uniform float u_Kd;   // Diffuse reflection coefficient
+  uniform float u_Ks;   // Specular reflection coefficient
+  uniform float u_shininessValue; // Shininess
+  // Material color
+  uniform vec3 u_ambientColor;
+  uniform vec3 u_diffuseColor;
+  uniform vec3 u_specularColor;
+  uniform vec3 u_lightPos; // Light position
+  
+  varying vec4 v_color; //color
+
+  void main(){
+    vec4 vertPos4 = u_modelViewMatrix * vec4(a_position, 1.0);
+    v_vertexPos = vec3(vertPos4) / vertPos4.w;
+    v_normalInterp = vec3(u_normalMatrix * vec4(a_normal, 0.0));
+    gl_Position = u_projectionMatrix * vertPos4;
+
+    vec3 N = normalize(v_normalInterp);
+    vec3 L = normalize(u_lightPos - v_vertexPos);
+    // Lambert's cosine law
+    float lambertian = max(dot(N, L), 0.0);
+    float specular = 0.0;
+    if(lambertian > 0.0) {
+      vec3 V = normalize(-v_vertexPos); // Vector to viewer
+      vec3 H = normalize(V + normalize(-u_lightPos));      // Reflected light vector
+      // Compute the specular term
+      float specAngle = max(dot(H, N), 0.0);
+      specular = pow(specAngle, u_shininessValue);
+    }
+    v_color = vec4(u_Ka * u_ambientColor +
+    u_Kd * lambertian * u_diffuseColor +
+    u_Ks * specular * u_specularColor, 1.0);
+  }
+</script>
+<script type="x-shader/x-fragment" id="blinnPhongGourandFragmentShader">
+  precision mediump float;
+  varying vec4 v_color;
+  
+  void main() {
+    gl_FragColor = v_color;
+  }
+</script>
+<script src="./js/elgr/compiled/Renderer.js"></script>
+<script src="./js/elgr/compiled/Shapes.js"></script>
+<script src="./js/elgr/compiled/GroundPlane.js"></script>
+<script src="./js/webgl-utils/compiled/WebGLUtils.js"></script>
+<script src="./js/elgr/compiled/Animator.js"></script>
+<script src="./js/elgr/compiled/SceneGraph.js"></script>
+<script src="./js/elgr/compiled/MovableCamera.js"></script>
+<script src="./js/elgr/compiled/KeyListener.js"></script>
+<script src="./js/elgr/compiled/Material.js"></script>
+<script src="./js/gl-matrix.js"></script>
+<script src="./index.js"></script>
+<div class="centeredContainer">
+    <canvas id="webglCanvas" width="600" height="600">
+        Please use a browser that supports "canvas"
+    </canvas>
+</div>
+<p>Use the keyboard to control the camera:</p>
+<ul>
+<li><code>I</code> look up</li>
+<li><code>J</code> look left</li>
+<li><code>L</code> look right</li>
+<li><code>K</code> look down</li>
+</ul>
+<p>Shader:</p>
+<select onchange="changeShader()" id="selectShader">
+  <option value="phong">Phong</option>
+  <option value="gourand">Gourand</option>
+</select>
+
+    
+    
+
+        <footer>
+            
+
+    <hr>
+
+    <div>Powered by
+        <a href="https://golang.org/">Go</a> and
+        <a href="https://github.com/ellifteria/grafe">graf&emacr;</a>
+    </div>
+
+
+        </footer>
+    </body>
+
+</html>
+
+
+
+    
+    

@@ -1,0 +1,6 @@
+[submodule "static/elgr"]
+	path = static/elgr
+	url = git@github.com:ellifteria/elgr.git
+[submodule "static/webgl-utils"]
+	path = static/webgl-utils
+	url = git@github.com:ellifteria/webGL-utils.git

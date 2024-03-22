@@ -1,0 +1,20 @@
+{{template "base" .}}
+
+{{define "header"}}
+    <title>{{.SiteParams.name}}</title>
+{{end}}
+
+{{define "content"}}
+
+    <h1>{{.PageParams.title}}</h1>
+    <p class="subtitle">{{.PageParams.summary}}</p>
+    
+    <p>/
+    {{range $social := .PageParams.socials}}
+        <a href="{{$social.link}}">{{$social.name}}</a> /
+    {{end}}
+    </p>
+
+    {{ .Body }}
+
+{{end}}
